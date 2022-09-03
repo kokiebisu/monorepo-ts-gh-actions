@@ -1,0 +1,43 @@
+name: Trigger (Feat/Chore/Fix)
+
+on:
+  push:
+    branches:
+      - "feat/**"
+      - "chore/**"
+      - "fix/**"
+      - "refactor/**"
+
+jobs:
+  setup-and-test:
+    name: Setup and Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service-package-prefix:
+          - service-package-name
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/labeler@v4
+        with:
+          repo-token: "${{ secrets.GH_TOKEN }}"
+
+      - uses: ./.github/actions/check-file-changed
+        id: validation
+        with:
+          service-package-prefix: ${{ matrix.service-package-prefix }}
+
+      - uses: ./.github/actions/setup-cache
+        with:
+          service-package-prefix: ${{ matrix.service-package-prefix }}
+          use-case: test
+        if: steps.validation.outputs.files-changed == 'true'
+
+      - uses: ./.github/actions/test
+        with:
+          service-package-prefix: ${{ matrix.service-package-prefix }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        if: steps.validation.outputs.files-changed == 'true'

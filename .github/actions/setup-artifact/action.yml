@@ -1,0 +1,46 @@
+name: Setup with Artifact
+
+inputs:
+  package-name:
+    required: true
+outputs:
+  files-changed:
+    value: ${{ steps.changes.outputs.service }}
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-node@v2
+      with:
+        node-version: "14.17.3"
+
+    - name: Add global deps
+      run: yarn global add python make lerna@4.0.0 node-gyp@9.0.0 typescript@4.7.2 @types/jest
+      shell: bash
+
+    - name: Install dependencies
+      run: yarn
+      shell: bash
+
+    - name: Cache node modules
+      id: node-modules-cashe
+      uses: actions/cache@v3
+      with:
+        path: "**/node_modules"
+        key: node-modules-cache
+
+    - name: Build package
+      run: yarn build
+      working-directory: ./packages/${{ inputs.package-name }}
+      shell: bash
+
+    - name: Archive dist
+      run: zip -r archive-${{ inputs.package-name }}.zip . --include **/dist/**
+      shell: bash
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: compiled-${{ inputs.package-name }}
+        path: archive-${{ inputs.package-name }}.zip
+        retention-days: 1

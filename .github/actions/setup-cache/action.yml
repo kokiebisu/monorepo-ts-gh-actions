@@ -1,0 +1,61 @@
+name: Setup with Cache
+
+inputs:
+  service-package-prefix:
+    type: string
+  api-package-prefix:
+    type: string
+  use-case:
+    required: true
+outputs:
+  files-changed:
+    value: ${{ steps.changes.outputs.service }}
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-node@v2
+      with:
+        node-version: "14.17.3"
+
+    - name: Add global deps
+      run: yarn global add python make lerna@4.0.0 node-gyp@9.0.0 typescript@4.7.2 @types/jest
+      shell: bash
+
+    - name: Install dependencies
+      run: yarn
+      shell: bash
+
+    - name: Cache node modules
+      id: node-modules-cache
+      uses: actions/cache@v3
+      with:
+        path: "**/node_modules"
+        key: node-modules-cache
+
+    - name: Build packages (Service)
+      run: lerna run build --scope=@coin-miles/${{ inputs.service-package-prefix }}-service
+      shell: bash
+      if: ${{ inputs.use-case == 'test' && inputs.service-package-prefix }}
+
+    - name: Build packages (Service)
+      run: lerna run build --scope=@coin-miles/${{ inputs.service-package-prefix }}-*
+      shell: bash
+      if: ${{ inputs.use-case == 'deploy' && inputs.service-package-prefix }}
+
+    - name: Build packages (CLI)
+      run: lerna run build --scope=@coin-miles/cli
+      shell: bash
+      if: ${{ inputs.use-case == 'deploy' && inputs.service-package-prefix }}
+
+    - name: Build packages (API)
+      run: lerna run build --scope=@coin-miles/*-api --ignore=@coin-miles/*-rest-api
+      shell: bash
+      if: ${{ inputs.use-case == 'deploy' && inputs.api-package-prefix }}
+
+    - name: Cache dist modules
+      id: dist-cache
+      uses: actions/cache@v3
+      with:
+        path: "**/dist/**"
+        key: dist-cache

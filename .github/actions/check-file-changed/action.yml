@@ -1,0 +1,22 @@
+name: Deploy
+
+inputs:
+  service-package-prefix:
+    type: string
+  api-package-prefix:
+    type: string
+
+outputs:
+  files-changed:
+    value: ${{ steps.changes.outputs.service }}
+
+runs:
+  using: "composite"
+  steps:
+    - uses: dorny/paths-filter@v2
+      id: changes
+      with:
+        filters: |
+          service:
+            - 'packages/${{ inputs.service-package-prefix }}-service/**'
+            - 'packages/${{ inputs.api-package-prefix }}-api/**'

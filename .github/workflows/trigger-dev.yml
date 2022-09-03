@@ -1,0 +1,84 @@
+name: Trigger (Develop)
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - dev
+
+jobs:
+  setup-and-deploy-service:
+    name: Setup and Deploy Service
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    strategy:
+      matrix:
+        service-package-prefix:
+          - service-package-name
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/labeler@v4
+        with:
+          repo-token: "${{ secrets.GH_TOKEN }}"
+
+      - uses: ./.github/actions/check-file-changed
+        id: validation
+        with:
+          service-package-prefix: ${{ matrix.service-package-prefix }}
+
+      - uses: ./.github/actions/setup-cache
+        with:
+          service-package-prefix: ${{ matrix.service-package-prefix }}
+          use-case: deploy
+        if: steps.validation.outputs.files-changed == 'true'
+
+      - uses: ./.github/actions/deploy
+        with:
+          environment: dev
+          service-package-prefix: ${{ matrix.service-package-prefix }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        if: steps.validation.outputs.files-changed == 'true'
+
+  setup-and-deploy-api:
+    name: Setup and Deploy API
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    strategy:
+      matrix:
+        api-package-prefix:
+          - api-package-name
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/labeler@v4
+        with:
+          repo-token: "${{ secrets.GH_TOKEN }}"
+
+      - uses: ./.github/actions/check-file-changed
+        id: validation
+        with:
+          api-package-prefix: ${{ matrix.api-package-prefix }}
+
+      - uses: ./.github/actions/setup-cache
+        with:
+          api-package-prefix: ${{ matrix.api-package-prefix }}
+          use-case: deploy
+        if: steps.validation.outputs.files-changed == 'true'
+
+      - uses: ./.github/actions/deploy
+        with:
+          environment: dev
+          api-package-prefix: ${{ matrix.api-package-prefix }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        if: steps.validation.outputs.files-changed == 'true'

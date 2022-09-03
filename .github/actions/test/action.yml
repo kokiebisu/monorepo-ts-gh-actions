@@ -1,0 +1,62 @@
+name: Setup Environment
+
+inputs:
+  service-package-prefix:
+    required: true
+  files-changed:
+    required: true
+  AWS_ACCESS_KEY_ID:
+    required: true
+  AWS_SECRET_ACCESS_KEY:
+    required: true
+  AWS_REGION:
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-node@v2
+      with:
+        node-version: "14.17.3"
+
+    - uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ inputs.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ inputs.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ inputs.AWS_REGION }}
+
+    - name: Add global deps
+      run: yarn global add python make lerna@4.0.0 node-gyp@9.0.0 typescript@4.7.2
+      shell: bash
+
+    - name: Retreive node_modules cache
+      id: node-modules-cache
+      uses: actions/cache@v2
+      with:
+        path: "**/node_modules"
+        key: node-modules-build
+
+    - name: Install dependencies
+      run: yarn
+      if: steps.node-modules-cache.outputs.cache-hit != 'true'
+      shell: bash
+
+    - name: Retrieve dist cache
+      id: dist-cache
+      uses: actions/cache@v3
+      with:
+        path: "**/dist"
+        key: dist-build
+
+    - name: Build packages
+      run: yarn build
+      if: steps.dist-cache.outputs.cache-hit != 'true'
+      shell: bash
+
+    - name: Run the full docker-compose setup
+      run: docker-compose -f docker-compose.deps.yml up -d --remove-orphans --build
+      shell: bash
+
+    - name: Run all tests
+      run: cd packages/${{ inputs.service-package-prefix }}-service && yarn test:local && cd ../..
+      shell: bash

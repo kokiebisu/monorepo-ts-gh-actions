@@ -1,0 +1,24 @@
+admin-api:
+  - packages/admin-api/**
+affiliates:
+  - packages/affiliates-*/**
+broker:
+  - packages/broker-*/**
+client-api:
+  - packages/client-api/**
+clo:
+  - packages/clo-*/**
+common:
+  - packages/common-*/**
+gift-card:
+  - packages/gift-card-*/**
+support:
+  - packages/support-*/**
+travel:
+  - packages/travel-*/**
+users:
+  - packages/users-*/**
+wallet:
+  - packages/wallet-*/**
+github-workflows:
+  - .github/**
